@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>收集春天 · 3D润泽饱满琉璃风铃</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <style>
+    :root { --primary-color: #b0c2d4; --accent-color: #8da3b9; --poster-bg: #f3f6f8; --panel-bg: rgba(255, 255, 255, 0.94); --poster-width: 540px; --poster-height: 720px; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Noto Serif SC', serif; background: #eaedf3; display: flex; justify-content: center; align-items: center; min-height: 100vh; overflow: auto; padding: 28px; }
+    .poster-container { position: relative; width: min(100%, 860px); min-height: var(--poster-height); display: flex; gap: 28px; align-items: stretch; }
+    #canvas-container { position: relative; flex: 0 0 var(--poster-width); width: var(--poster-width); height: var(--poster-height); z-index: 1; pointer-events: auto; touch-action: none; background: var(--poster-bg); box-shadow: 0 40px 90px rgba(145, 160, 180, 0.18); border-radius: 20px; overflow: hidden; border: 14px solid #ffffff; }
+    #canvas-container canvas { width: 100% !important; height: 100% !important; display: block; }
+    .poster-ui-layer { position: absolute; top: 0; left: 0; width: var(--poster-width); height: var(--poster-height); z-index: 2; padding: 45px; pointer-events: none; }
+    .control-panel { position: relative; flex: 0 0 292px; width: 292px; height: 720px; max-height: 720px; overflow-y: auto; background: var(--panel-bg); backdrop-filter: blur(20px); border-radius: 12px; z-index: 10; padding: 22px; pointer-events: auto; box-shadow: 0 18px 45px rgba(120, 136, 156, 0.18); border: 1px solid rgba(255, 255, 255, 0.76); }
+    .control-group { margin-bottom: 15px; }
+    .control-group label { display: block; font-size: 11px; color: #4b5a6a; margin-bottom: 5px; font-weight: 600; }
+    .control-group input[type="range"] { width: 100%; accent-color: #8da3b9; }
+    .control-group input[type="file"] { width: 100%; color: #607080; font-size: 11px; }
+    .control-group select { width: 100%; border: 1px solid rgba(141, 163, 185, 0.35); border-radius: 6px; padding: 7px 8px; background: rgba(255, 255, 255, 0.86); color: #4b5a6a; font-family: inherit; font-size: 12px; outline: none; }
+    .control-group button { width: 100%; border: 1px solid rgba(141, 163, 185, 0.32); border-radius: 6px; padding: 7px 8px; background: rgba(255, 255, 255, 0.9); color: #4b5a6a; font-family: inherit; font-size: 12px; cursor: pointer; }
+    @media (max-width: 920px) {
+      :root { --poster-width: min(calc(100vw - 32px), 540px); --poster-height: calc(var(--poster-width) * 4 / 3); }
+      body { align-items: flex-start; padding: 16px; }
+      .poster-container { width: 100%; min-height: auto; height: auto; flex-direction: column; align-items: center; gap: 18px; }
+      #canvas-container { flex-basis: var(--poster-width); border-width: clamp(8px, 2.6vw, 14px); border-radius: clamp(14px, 4vw, 20px); box-shadow: 0 24px 58px rgba(145, 160, 180, 0.2); }
+      .poster-ui-layer { left: 50%; transform: translateX(-50%); padding: clamp(24px, 8vw, 45px); }
+      .control-panel { width: min(540px, 100%); height: auto; max-height: none; flex-basis: auto; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="poster-container">
+    <div id="canvas-container"></div>
+    <div class="poster-ui-layer">
+      <h1>收集春天</h1>
+      <p style="font-size: 11px; color: #8da3b9; letter-spacing: 5px;">COLLECT SPRING</p>
+    </div>
+
+    <div class="control-panel" id="controlPanel">
+      <div class="control-group">
+        <label>风铃颗粒</label>
+        <select onchange="params.shape = this.value">
+          <option value="bead">琉璃珠</option>
+          <option value="butterfly">蝴蝶</option>
+          <option value="star">星星</option>
+          <option value="flower">花朵</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label>颗粒色系</label>
+        <select onchange="setColorTheme(this.value)">
+          <option value="spring">春日蓝绿</option>
+          <option value="sakura">樱粉紫</option>
+          <option value="sunset">暖杏橙</option>
+          <option value="ocean">海盐蓝</option>
+          <option value="lavender">薰衣草</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label>旋转强度</label>
+        <input type="range" min="0" max="2.5" step="0.05" value="1" oninput="params.rotationStrength = parseFloat(this.value)">
+      </div>
+      <div class="control-group">
+        <label>风吹散开烈度</label>
+        <input type="range" min="0" max="6" step="0.1" value="3.5" oninput="params.wind = parseFloat(this.value)">
+      </div>
+      <div class="control-group">
+        <label>琉璃颗粒尺寸</label>
+        <input type="range" min="2" max="15" step="0.2" value="7.0" oninput="params.elementSize = parseFloat(this.value)">
+      </div>
+      <div class="control-group">
+        <label>颗粒稀疏程度</label>
+        <input type="range" min="0.5" max="1.6" step="0.05" value="1" oninput="params.density = parseFloat(this.value); rebuildChimes(numStrings)">
+      </div>
+      <div class="control-group">
+        <label>3:4海报背景</label>
+        <input type="file" accept="image/*" onchange="loadPosterBackground(event)">
+      </div>
+      <div class="control-group">
+        <label>PNG元素图层</label>
+        <input type="file" accept="image/png" multiple onchange="loadElementLayers(event)">
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let params = { wind: 3.5, elementSize: 7.0, shape: 'bead', colorTheme: 'spring', rotationStrength: 1, density: 1, bgTheme: 'mist', bgIntensity: 0.28 };
+    let chimes = [], stringLengths = [], numStrings = 36, globalRotation = 0, spiralPoints = [];
+    let posterBackground = null, elementLayerImages = [];
+    let releasedParticles = [], gestureWind = { x: 0, z: 0, force: 0, px: 256, py: 346 };
+    let lastPointer = null, audioCtx = null, lastChimeFrame = 0, bgMusicTimer = null, bgMusicStarted = false;
+    const stringLength = 520;
+    const starUnitPoints = [
+      [0, -1], [0.26, -0.36], [0.95, -0.31], [0.42, 0.12], [0.59, 0.81],
+      [0, 0.44], [-0.59, 0.81], [-0.42, 0.12], [-0.95, -0.31], [-0.26, -0.36]
+    ];
+
+    buildControlPanel();
+
+    function setup() {
+      let canvas = createCanvas(512, 692, WEBGL);
+      canvas.parent('canvas-container');
+      pixelDensity(1);
+      updateBackgroundStyle();
+      rebuildChimes(numStrings);
+    }
+
+    function setParticleShape(shape) {
+      params.shape = shape;
+    }
+
+    function touchStarted() {
+      startAudio();
+      lastPointer = currentPointer();
+      return false;
+    }
+
+    function touchMoved() {
+      handlePointerMove();
+      return false;
+    }
+
+    function mousePressed() {
+      startAudio();
+      lastPointer = currentPointer();
+    }
+
+    function mouseDragged() {
+      handlePointerMove();
+    }
+
+    function currentPointer() {
+      let canvasEl = document.querySelector('#canvas-container canvas');
+      let rect = (canvasEl || document.getElementById('canvas-container')).getBoundingClientRect();
+      let rawX = mouseX;
+      let rawY = mouseY;
+      if (touches && touches.length) {
+        let tx = touches[0].clientX ?? touches[0].x;
+        let ty = touches[0].clientY ?? touches[0].y;
+        rawX = tx - rect.left;
+        rawY = ty - rect.top;
+      }
+      let scaleX = width / rect.width;
+      let scaleY = height / rect.height;
+      return {
+        x: constrain(rawX * scaleX, 0, width),
+        y: constrain(rawY * scaleY, 0, height)
+      };
+    }
+
+    function handlePointerMove() {
+      let p = currentPointer();
+      if (!lastPointer) lastPointer = p;
+      let dx = p.x - lastPointer.x;
+      let dy = p.y - lastPointer.y;
+      let speed = sqrt(dx * dx + dy * dy);
+      gestureWind.x += dx * 0.055;
+      gestureWind.z += dy * 0.035;
+      gestureWind.force = min(12, gestureWind.force + speed * 0.09);
+      gestureWind.px = p.x;
+      gestureWind.py = p.y;
+      if (speed > 3) triggerPointerFeedback(p, dx, dy, speed);
+      lastPointer = p;
+    }
+
+    function startAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      startBackgroundMusic();
+    }
+
+    function startBackgroundMusic() {
+      if (!audioCtx || bgMusicStarted) return;
+      bgMusicStarted = true;
+      schedulePianoLoop();
+      bgMusicTimer = setInterval(schedulePianoLoop, 12800);
+    }
+
+    function schedulePianoLoop() {
+      if (!audioCtx) return;
+      let base = audioCtx.currentTime + 0.08;
+      let notes = [
+        [293.66, 0.00, 1.8, 0.006], [587.33, 0.00, 1.0, 0.010], [739.99, 0.32, 0.95, 0.009], [880.00, 0.64, 1.05, 0.010], [1174.66, 0.98, 1.15, 0.007],
+        [220.00, 1.60, 1.8, 0.005], [554.37, 1.60, 1.0, 0.010], [659.25, 1.92, 0.95, 0.009], [880.00, 2.24, 1.05, 0.010], [1108.73, 2.58, 1.12, 0.007],
+        [246.94, 3.20, 1.8, 0.005], [493.88, 3.20, 1.0, 0.010], [587.33, 3.52, 0.95, 0.009], [739.99, 3.84, 1.05, 0.010], [987.77, 4.18, 1.12, 0.007],
+        [185.00, 4.80, 1.8, 0.004], [440.00, 4.80, 1.0, 0.009], [554.37, 5.12, 0.95, 0.008], [739.99, 5.44, 1.05, 0.009], [880.00, 5.78, 1.12, 0.006],
+        [196.00, 6.40, 1.8, 0.005], [392.00, 6.40, 1.0, 0.010], [587.33, 6.72, 0.95, 0.009], [783.99, 7.04, 1.05, 0.010], [987.77, 7.38, 1.12, 0.007],
+        [293.66, 8.00, 1.8, 0.005], [587.33, 8.00, 1.0, 0.010], [739.99, 8.32, 0.95, 0.009], [880.00, 8.64, 1.05, 0.010], [1174.66, 8.98, 1.12, 0.007],
+        [196.00, 9.60, 1.8, 0.005], [493.88, 9.60, 1.0, 0.010], [587.33, 9.92, 0.95, 0.009], [783.99, 10.24, 1.05, 0.010], [987.77, 10.58, 1.12, 0.007],
+        [220.00, 11.20, 1.8, 0.005], [554.37, 11.20, 1.0, 0.010], [659.25, 11.52, 0.95, 0.009], [880.00, 11.84, 1.05, 0.010], [1108.73, 12.18, 1.12, 0.007]
+      ];
+      notes.forEach(n => playPianoNote(n[0], base + n[1], n[2], n[3]));
+    }
+
+    function playPianoNote(freq, startTime, duration, level) {
+      let osc = audioCtx.createOscillator();
+      let shimmer = audioCtx.createOscillator();
+      let gain = audioCtx.createGain();
+      let filter = audioCtx.createBiquadFilter();
+      osc.type = 'triangle';
+      shimmer.type = 'sine';
+      osc.frequency.setValueAtTime(freq, startTime);
+      shimmer.frequency.setValueAtTime(freq * 2.01, startTime);
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(2400, startTime);
+      filter.frequency.exponentialRampToValueAtTime(900, startTime + duration);
+      gain.gain.setValueAtTime(0.0001, startTime);
+      gain.gain.exponentialRampToValueAtTime(level, startTime + 0.035);
+      gain.gain.exponentialRampToValueAtTime(level * 0.22, startTime + duration * 0.45);
+      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+      osc.connect(filter);
+      shimmer.connect(filter);
+      filter.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(startTime);
+      shimmer.start(startTime);
+      osc.stop(startTime + duration + 0.04);
+      shimmer.stop(startTime + duration + 0.04);
+    }
+
+    function playParticleSound(type, influence) {
+      if (!audioCtx || frameCount - lastChimeFrame < 3) return;
+      lastChimeFrame = frameCount;
+      let level = min(0.16, 0.035 + influence * 0.01);
+      if (type === 'bubble') {
+        playTone(1720 * random(0.96, 1.05), 0.38, level * 0.42, 'sine');
+        playTone(2360 * random(0.96, 1.06), 0.28, level * 0.18, 'sine', 0.024);
+      } else if (type === 'butterfly') {
+        playTone(1040 * random(0.96, 1.04), 0.34, level * 0.24, 'sine');
+        playTone(1310 * random(0.96, 1.04), 0.42, level * 0.2, 'sine', 0.075);
+        playTone(1560 * random(0.96, 1.04), 0.52, level * 0.14, 'sine', 0.16);
+      } else if (type === 'star') {
+        playTone(1320 * random(0.9, 1.1), 0.48, level * 0.72, 'sine');
+        playTone(2640 * random(0.9, 1.08), 0.24, level * 0.24, 'triangle', 0.025);
+      } else {
+        playTone(760 * random(0.92, 1.08), 0.58, level * 0.6, 'sine');
+        playTone(1140 * random(0.92, 1.08), 0.42, level * 0.28, 'sine', 0.04);
+      }
+    }
+
+    function playTone(freq, duration, level, type = 'sine', delay = 0) {
+      let t = audioCtx.currentTime + delay;
+      let osc = audioCtx.createOscillator();
+      let gain = audioCtx.createGain();
+      let filter = audioCtx.createBiquadFilter();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, t);
+      osc.frequency.exponentialRampToValueAtTime(freq * 0.985, t + duration);
+      filter.type = 'bandpass';
+      filter.frequency.value = freq;
+      filter.Q.value = 7;
+      gain.gain.setValueAtTime(0.001, t);
+      gain.gain.exponentialRampToValueAtTime(level, t + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(t);
+      osc.stop(t + duration + 0.03);
+    }
+
+    function playSweep(fromFreq, toFreq, duration, level, type = 'sine', delay = 0) {
+      let t = audioCtx.currentTime + delay;
+      let osc = audioCtx.createOscillator();
+      let gain = audioCtx.createGain();
+      let filter = audioCtx.createBiquadFilter();
+      osc.type = type;
+      osc.frequency.setValueAtTime(fromFreq, t);
+      osc.frequency.exponentialRampToValueAtTime(toFreq, t + duration * 0.82);
+      filter.type = 'highpass';
+      filter.frequency.value = 620;
+      gain.gain.setValueAtTime(0.001, t);
+      gain.gain.exponentialRampToValueAtTime(level, t + 0.08);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(t);
+      osc.stop(t + duration + 0.03);
+    }
+
+    function triggerPointerFeedback(p, dx, dy, speed) {
+      if (releasedParticles.length > 120) return;
+      let type = params.shape === 'bead' ? 'bubble' : params.shape;
+      let count = constrain(floor(speed / 9) + 3, 3, 8);
+      for (let i = 0; i < count; i++) {
+        releasedParticles.push({
+          type,
+          x: p.x - width / 2 + random(-28, 28),
+          y: p.y - height / 2 + random(-28, 28),
+          z: random(-10, 14),
+          vx: dx * 0.08 + random(-1.6, 1.6),
+          vy: dy * 0.04 + random(-3.2, -1.2),
+          vz: random(-1.2, 1.2),
+          life: 0,
+          maxLife: random(70, 120),
+          phase: random(TWO_PI),
+          color: releaseColor(type),
+          size: params.elementSize * random(0.72, 1.45)
+        });
+      }
+      playParticleSound(type, min(10, speed * 0.25));
+    }
+
+    function backgroundThemes() {
+      return {
+        mist: [243, 246, 248],
+        sakuraBg: [255, 232, 240],
+        creamBg: [248, 236, 216],
+        aquaBg: [226, 242, 245],
+        lavenderBg: [238, 232, 248]
+      };
+    }
+
+    function getBackgroundRgb() {
+      let target = backgroundThemes()[params.bgTheme] || backgroundThemes().mist;
+      let t = params.bgIntensity;
+      return target.map(v => round(255 + (v - 255) * t));
+    }
+
+    function updateBackgroundStyle() {
+      let rgb = getBackgroundRgb();
+      document.documentElement.style.setProperty('--poster-bg', `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`);
+    }
+
+    function loadPosterBackground(event) {
+      let file = event.target.files && event.target.files[0];
+      if (!file) return;
+      let reader = new FileReader();
+      reader.onload = () => {
+        loadImage(reader.result, img => posterBackground = img);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function loadElementLayers(event) {
+      let files = Array.from(event.target.files || []);
+      elementLayerImages = [];
+      files.forEach(file => {
+        let reader = new FileReader();
+        reader.onload = () => loadImage(reader.result, img => elementLayerImages.push(img));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function clearPosterBackground() {
+      posterBackground = null;
+    }
+
+    function clearElementLayers() {
+      elementLayerImages = [];
+    }
+
+    function drawPosterBackground() {
+      if (!posterBackground) return;
+      let imgRatio = posterBackground.width / posterBackground.height;
+      let canvasRatio = width / height;
+      let sx = 0, sy = 0, sw = posterBackground.width, sh = posterBackground.height;
+      if (imgRatio > canvasRatio) {
+        sw = posterBackground.height * canvasRatio;
+        sx = (posterBackground.width - sw) / 2;
+      } else {
+        sh = posterBackground.width / canvasRatio;
+        sy = (posterBackground.height - sh) / 2;
+      }
+      push();
+      noStroke();
+      translate(0, 0, -900);
+      imageMode(CORNER);
+      image(posterBackground, -width / 2, -height / 2, width, height, sx, sy, sw, sh);
+      pop();
+    }
+
+    /*
+    function fixControlText_broken() {
+      let labels = document.querySelectorAll('.control-group label');
+      let names = ['风铃颗粒', '颗粒色系', '旋转强度', '风扰动强度', '颗粒大小', '颗粒密集程度', '3:4海报背景', 'PNG元素图层'];
+      labels.forEach((label, i) => label.textContent = names[i] || label.textContent);
+
+      let shapeOptions = document.querySelectorAll('select')[0]?.querySelectorAll('option');
+      ['琉璃珠', '蝴蝶', '星星', '花朵'].forEach((text, i) => {
+        if (shapeOptions && shapeOptions[i]) shapeOptions[i].textContent = text;
+      });
+
+      let colorOptions = document.querySelectorAll('select')[1]?.querySelectorAll('option');
+      ['春日蓝绿', '樱粉紫', '暖杏橙', '海盐蓝', '薰衣草'].forEach((text, i) => {
+        if (colorOptions && colorOptions[i]) colorOptions[i].textContent = text;
+      });
+    }
+
+    */
+    function fixControlText() {
+      let panel = document.getElementById('controlPanel');
+      panel.innerHTML = `
+        <div class="control-group"><label>风铃颗粒</label><select onchange="params.shape = this.value"><option value="bead">琉璃珠</option><option value="butterfly">蝴蝶</option><option value="star">星星</option><option value="flower">花朵</option></select></div>
+        <div class="control-group"><label>颗粒色系</label><select onchange="setColorTheme(this.value)"><option value="spring">春日蓝绿</option><option value="sakura">樱粉紫</option><option value="sunset">暖杏橙</option><option value="ocean">海盐蓝</option><option value="lavender">薰衣草</option></select></div>
+        <div class="control-group"><label>旋转强度</label><input type="range" min="0" max="2.5" step="0.05" value="${params.rotationStrength}" oninput="params.rotationStrength = parseFloat(this.value)"></div>
+        <div class="control-group"><label>风扰动强度</label><input type="range" min="0" max="6" step="0.1" value="${params.wind}" oninput="params.wind = parseFloat(this.value)"></div>
+        <div class="control-group"><label>颗粒大小</label><input type="range" min="2" max="15" step="0.2" value="${params.elementSize}" oninput="params.elementSize = parseFloat(this.value)"></div>
+        <div class="control-group"><label>颗粒密集程度</label><input type="range" min="0.5" max="1.6" step="0.05" value="${params.density}" oninput="params.density = parseFloat(this.value); rebuildChimes(numStrings)"></div>
+        <div class="control-group"><label>3:4 海报背景</label><input type="file" accept="image/*" onchange="loadPosterBackground(event)"></div>
+        <div class="control-group"><label>PNG 元素图层</label><input type="file" accept="image/png" multiple onchange="loadElementLayers(event)"></div>
+      `;
+    }
+
+    function buildControlPanel() {
+      let panel = document.getElementById('controlPanel');
+      panel.innerHTML = `
+        <div class="control-group"><label>&#39118;&#38083;&#39063;&#31890;</label><select onchange="setParticleShape(this.value)"><option value="bead">&#29705;&#29827;&#29664;</option><option value="butterfly">&#34676;&#34678;</option><option value="star">&#26143;&#26143;</option><option value="flower">&#33457;&#26421;</option></select></div>
+        <div class="control-group"><label>&#39063;&#31890;&#33394;&#31995;</label><select onchange="setColorTheme(this.value)"><option value="spring">&#26149;&#26085;&#34013;&#32511;</option><option value="sakura">&#27185;&#31881;&#32043;</option><option value="sunset">&#26262;&#26447;&#27225;</option><option value="ocean">&#28023;&#30416;&#34013;</option><option value="lavender">&#34224;&#34915;&#33609;</option></select></div>
+        <div class="control-group"><label>&#26059;&#36716;&#24378;&#24230;</label><input type="range" min="0" max="2.5" step="0.05" value="${params.rotationStrength}" oninput="params.rotationStrength = parseFloat(this.value)"></div>
+        <div class="control-group"><label>&#39118;&#25200;&#21160;&#24378;&#24230;</label><input type="range" min="0" max="6" step="0.1" value="${params.wind}" oninput="params.wind = parseFloat(this.value)"></div>
+        <div class="control-group"><label>&#32972;&#26223;&#39068;&#33394;</label><select onchange="params.bgTheme = this.value; updateBackgroundStyle()"><option value="mist">&#38654;&#34013;&#28784;</option><option value="sakuraBg">&#28129;&#27185;&#31881;</option><option value="creamBg">&#26580;&#31859;&#26447;</option><option value="aquaBg">&#28023;&#30416;&#34013;</option><option value="lavenderBg">&#28129;&#34224;&#34915;&#33609;</option></select></div>
+        <div class="control-group"><label>&#32972;&#26223;&#39068;&#33394;&#27987;&#24230;</label><input type="range" min="0" max="1" step="0.02" value="${params.bgIntensity}" oninput="params.bgIntensity = parseFloat(this.value); updateBackgroundStyle()"></div>
+        <div class="control-group"><label>&#39063;&#31890;&#22823;&#23567;</label><input type="range" min="2" max="15" step="0.2" value="${params.elementSize}" oninput="params.elementSize = parseFloat(this.value)"></div>
+        <div class="control-group"><label>&#39063;&#31890;&#23494;&#38598;&#31243;&#24230;</label><input type="range" min="0.5" max="1.6" step="0.05" value="${params.density}" oninput="params.density = parseFloat(this.value); rebuildChimes(numStrings)"></div>
+        <div class="control-group"><label>3:4 &#28023;&#25253;&#32972;&#26223;</label><input type="file" accept="image/*" onchange="loadPosterBackground(event)"></div>
+        <div class="control-group"><button type="button" onclick="clearPosterBackground()">&#28165;&#38500;&#32972;&#26223;</button></div>
+        <div class="control-group"><label>PNG &#20803;&#32032;&#22270;&#23618;</label><input type="file" accept="image/png" multiple onchange="loadElementLayers(event)"></div>
+        <div class="control-group"><button type="button" onclick="clearElementLayers()">&#28165;&#38500; PNG &#22270;&#23618;</button></div>
+      `;
+    }
+
+    function draw() {
+      let bg = getBackgroundRgb();
+      background(bg[0], bg[1], bg[2]);
+      drawPosterBackground();
+      ambientLight(245, 248, 250);
+      directionalLight(255, 255, 255, 0.4, 0.8, -0.3);
+
+      // 模拟风的整体律动（非线性波动）
+      let windForce = sin(frameCount * 0.02) * params.wind * 0.5 + params.wind;
+      gestureWind.x *= 0.92;
+      gestureWind.z *= 0.92;
+      gestureWind.force *= 0.9;
+      globalRotation += (0.005 + (windForce * 0.002)) * params.rotationStrength;
+      push();
+      translate(0, -210, 0);
+      rotateX(radians(22));
+      drawCoilFrame();
+
+      for (let i = 0; i < chimes.length; i++) {
+        let pt = spiralPoints[i];
+        let dir = createVector(pt.x, 0, pt.z).normalize();
+        let touchInfluence = strandTouchInfluence(pt);
+        
+        // 逼真的物理旋转：基于风力扰动 + 阻尼感
+        let individualSway = sin(frameCount * 0.05 + i * 0.5) * windForce * 0.1;
+        
+        push();
+        translate(pt.x, 0, pt.z);
+        rotateY(individualSway);
+        rotateX(radians(-22));
+
+        // 绘制流畅线条
+        stroke(200, 210, 225, 65); strokeWeight(0.5);
+        let orbitPhase = globalRotation * 1.55 + i * 0.52;
+        let swayRadius = windForce * 11 + 12 + touchInfluence * 7;
+        let swayX = cos(orbitPhase) * swayRadius + sin(frameCount * 0.025 + i) * 6 + gestureWind.x * touchInfluence;
+        let swayZ = sin(orbitPhase) * swayRadius + cos(frameCount * 0.025 + i) * 6 + gestureWind.z * touchInfluence;
+        
+        let thisLength = stringLengths[i] || stringLength;
+        line(0, 0, 0, swayX, thisLength, swayZ);
+
+        for (let node of chimes[i]) {
+          push();
+          translate(swayX * node.r, node.y, swayZ * node.r);
+          rotateY((frameCount * 0.02 * params.rotationStrength) + node.phase);
+          drawParticle(node);
+          drawElementLayer(node);
+          pop();
+          maybeReleaseParticle(node, pt, swayX, swayZ, touchInfluence);
+        }
+        pop();
+      }
+      pop();
+      updateReleasedParticles();
+    }
+
+    function rebuildChimes(num) {
+      chimes = []; stringLengths = []; spiralPoints = [];
+      let coilAnchors = buildCoilAnchors(num);
+      for (let i = 0; i < num; i++) {
+        spiralPoints.push(coilAnchors[i]);
+        let thisLength = stringLength + sin(i * 1.17) * 250 + cos(i * 0.53) * 145;
+        thisLength = constrain(thisLength, 310, 680);
+        stringLengths.push(thisLength);
+        chimes[i] = [];
+        let particleCount = constrain(round(10 * params.density), 4, 16);
+        for (let j = 0; j < particleCount; j++) {
+          chimes[i].push({
+            r: j / particleCount,
+            y: j * (thisLength / (particleCount - 0.4)),
+            phase: random(TWO_PI),
+            color: themedColor(),
+            layerSeed: random(),
+            layerIndex: floor(random(0, 8))
+          });
+        }
+      }
+    }
+
+    function strandTouchInfluence(pt) {
+      let anchorScreenX = width / 2 + pt.x;
+      let anchorScreenY = height / 2 - 210 + pt.z * 0.35;
+      let d = dist(anchorScreenX, anchorScreenY, gestureWind.px, gestureWind.py);
+      return gestureWind.force * exp(-d * 0.018);
+    }
+
+    function maybeReleaseParticle(node, pt, swayX, swayZ, influence) {
+      if (influence < 1.5 || releasedParticles.length > 120) return;
+      if (node.lastRelease && frameCount - node.lastRelease < 36) return;
+      if (random() > 0.045 * influence) return;
+
+      node.lastRelease = frameCount;
+      let type = params.shape === 'bead' ? 'bubble' : params.shape;
+      releasedParticles.push({
+        type,
+        x: pt.x + swayX * node.r,
+        y: -210 + node.y,
+        z: pt.z + swayZ * node.r,
+        vx: gestureWind.x * 0.55 + random(-1.2, 1.2),
+        vy: random(-2.8, -1.1),
+        vz: gestureWind.z * 0.4 + random(-0.9, 0.9),
+        life: 0,
+        maxLife: random(80, 135),
+        phase: node.phase,
+        color: releaseColor(type),
+        size: params.elementSize * random(0.85, 1.35)
+      });
+      playParticleSound(type, influence);
+    }
+
+    function updateReleasedParticles() {
+      for (let i = releasedParticles.length - 1; i >= 0; i--) {
+        let p = releasedParticles[i];
+        p.life++;
+        p.x += p.vx;
+        p.y += p.vy;
+        p.z += p.vz;
+        p.vy -= 0.012;
+        p.vx *= 0.988;
+        p.vz *= 0.988;
+        let alphaScale = 1 - p.life / p.maxLife;
+        if (alphaScale <= 0) {
+          releasedParticles.splice(i, 1);
+          continue;
+        }
+        push();
+        translate(p.x, p.y, p.z + 8);
+        drawReleasedParticle(p, alphaScale);
+        pop();
+      }
+    }
+
+    function drawReleasedParticle(p, alphaScale) {
+      noStroke();
+      fill(red(p.color), green(p.color), blue(p.color), 180 * alphaScale);
+      let s = p.size;
+      if (p.type === 'butterfly') {
+        let bloom = 0.45 + (1 - alphaScale) * 1.25;
+        let flap = sin(frameCount * 0.28 + p.phase) * 0.18;
+        rotateZ(sin(frameCount * 0.08 + p.phase) * 0.35);
+        scale(bloom, 0.82 + bloom * 0.18, 1);
+        fill(red(p.color), green(p.color), blue(p.color), 90 * alphaScale);
+        push();
+        rotateZ(-0.16 + flap);
+        drawButterflyParticle({ phase: p.phase }, s);
+        pop();
+        fill(255, 255, 255, 34 * alphaScale);
+        ellipse(0, 0, s * 2.2 * bloom, s * 1.25 * bloom);
+        fill(red(p.color), green(p.color), blue(p.color), 180 * alphaScale);
+        drawButterflyParticle({ phase: p.phase }, s);
+      } else if (p.type === 'star') {
+        let burst = 0.55 + (1 - alphaScale) * 1.25;
+        let twinkle = 0.95 + abs(sin(frameCount * 0.16 + p.phase)) * 0.12;
+        rotateZ(frameCount * 0.08 + p.phase);
+        scale(burst * twinkle * 1.22);
+        noStroke();
+        fill(255, 255, 255, 42 * alphaScale);
+        ellipse(0, 0, s * 2.6, s * 2.6);
+        fill(red(p.color), green(p.color), blue(p.color), 218 * alphaScale);
+        drawSoftStar(0, 0, s * 0.48, s * 1.08);
+        stroke(108, 110, 118, 82 * alphaScale);
+        strokeWeight(0.75);
+        noFill();
+        drawSoftStar(0, 0, s * 0.48, s * 1.08);
+        noStroke();
+        let accent = pastelAccentColor(p.phase);
+        fill(red(accent), green(accent), blue(accent), 150 * alphaScale);
+        ellipse(-s * 1.25, -s * 0.55, s * 0.18, s * 0.18);
+        ellipse(s * 1.06, s * 0.74, s * 0.14, s * 0.14);
+        stroke(red(accent), green(accent), blue(accent), 128 * alphaScale);
+        strokeWeight(0.55);
+        for (let k = 0; k < 6; k++) {
+          let a = TWO_PI * k / 6 + p.phase;
+          line(cos(a) * s * 1.3, sin(a) * s * 1.3, 1, cos(a) * s * 1.58, sin(a) * s * 1.58, 1);
+        }
+        noStroke();
+      } else if (p.type === 'flower') {
+        let bloom = 0.7 + (1 - alphaScale) * 0.9;
+        scale(bloom);
+        for (let k = 0; k < 6; k++) {
+          push();
+          rotateZ(TWO_PI * k / 6);
+          translate(s * 0.5, 0, 0);
+          ellipsoid(s * 0.34, s * 0.2, s * 0.08, 8, 4);
+          pop();
+        }
+        fill(255, 248, 220, 150 * alphaScale);
+        sphere(s * 0.2, 6, 4);
+      } else {
+        let bubbleSize = s * (1.05 + (1 - alphaScale) * 0.95);
+        rotateZ(sin(frameCount * 0.03 + p.phase) * 0.18);
+        noStroke();
+        fill(116, 212, 255, 58 * alphaScale);
+        ellipse(0, 0, bubbleSize * 2.05, bubbleSize * 2.05);
+        fill(255, 142, 218, 32 * alphaScale);
+        ellipse(0, 0, bubbleSize * 1.58, bubbleSize * 1.58);
+        fill(180, 156, 255, 30 * alphaScale);
+        ellipse(0, 0, bubbleSize * (2.62 - alphaScale * 0.35), bubbleSize * (2.62 - alphaScale * 0.35));
+        noFill();
+        stroke(255, 255, 255, 108 * alphaScale);
+        strokeWeight(1);
+        ellipse(0, 0, bubbleSize * 2.0, bubbleSize * 2.0);
+        stroke(92, 205, 255, 76 * alphaScale);
+        strokeWeight(0.7);
+        ellipse(0, 0, bubbleSize * 1.72, bubbleSize * 1.72);
+        stroke(255, 134, 218, 52 * alphaScale);
+        strokeWeight(0.5);
+        ellipse(0, 0, bubbleSize * 2.36, bubbleSize * 2.12);
+        push();
+        noStroke();
+        translate(-bubbleSize * 0.42, -bubbleSize * 0.42, 1);
+        fill(255, 255, 255, 110 * alphaScale);
+        ellipse(0, 0, bubbleSize * 0.38, bubbleSize * 0.18);
+        pop();
+        push();
+        noStroke();
+        translate(bubbleSize * 0.22, bubbleSize * 0.2, 1);
+        fill(255, 255, 255, 36 * alphaScale);
+        ellipse(0, 0, bubbleSize * 0.24, bubbleSize * 0.13);
+        pop();
+      }
+    }
+
+    function setColorTheme(theme) {
+      params.colorTheme = theme;
+      for (let strand of chimes) {
+        for (let node of strand) {
+          node.color = themedColor();
+        }
+      }
+    }
+
+    function releaseColor(type) {
+      if (type === 'butterfly') {
+        return color(random(235, 255), random(85, 180), random(165, 255), 210);
+      }
+      if (type === 'star') {
+        let choices = [
+          [246, 174, 194],
+          [176, 220, 202],
+          [168, 204, 226],
+          [211, 184, 226],
+          [244, 224, 150]
+        ];
+        let c = random(choices);
+        return color(c[0], c[1], c[2], 220);
+      }
+      if (type === 'flower') {
+        return color(random(245, 255), random(120, 205), random(150, 230), 210);
+      }
+      return color(random(145, 220), random(190, 235), random(255, 255), 180);
+    }
+
+    function themedColor() {
+      let palettes = {
+        spring: [[100, 200], [150, 255], [200, 255]],
+        sakura: [[205, 255], [145, 225], [190, 255]],
+        sunset: [[225, 255], [160, 220], [105, 190]],
+        ocean: [[95, 175], [170, 235], [220, 255]],
+        lavender: [[170, 225], [145, 210], [225, 255]]
+      };
+      let p = palettes[params.colorTheme] || palettes.spring;
+      return color(random(p[0][0], p[0][1]), random(p[1][0], p[1][1]), random(p[2][0], p[2][1]), 150);
+    }
+
+    function smoothstep(t) {
+      return t * t * (3 - 2 * t);
+    }
+
+    function drawParticle(node, alphaScale = 1) {
+      noStroke();
+      specularMaterial(255);
+      fill(red(node.color), green(node.color), blue(node.color), alpha(node.color) * alphaScale);
+      let s = params.elementSize;
+
+      if (params.shape === 'butterfly') {
+        push();
+        drawButterflyParticle(node, s);
+        pop();
+      } else if (params.shape === 'star') {
+        push();
+        rotateZ(frameCount * 0.012 * params.rotationStrength + node.phase);
+        drawStar(0, 0, s * 0.56, s * 1.28, 5);
+        fill(255, 255, 255, 90 * alphaScale);
+        translate(-s * 0.24, -s * 0.28, 1);
+        ellipse(0, 0, s * 0.28, s * 0.14);
+        pop();
+      } else if (params.shape === 'flower') {
+        for (let k = 0; k < 5; k++) {
+          push();
+          rotateZ(TWO_PI * k / 5);
+          translate(s * 0.52, 0, 0);
+          ellipse(0, 0, s * 0.78, s * 0.42);
+          pop();
+        }
+        fill(255, 248, 220, 165 * alphaScale);
+        ellipse(0, 0, s * 0.42, s * 0.42);
+      } else {
+        sphere(s * 0.75, 4, 3);
+      }
+    }
+
+    function drawElementLayer(node, alphaScale = 1) {
+      if (!elementLayerImages.length || node.layerSeed > 0.38) return;
+      let img = elementLayerImages[node.layerIndex % elementLayerImages.length];
+      if (!img) return;
+      let s = params.elementSize * 2.4;
+      let aspect = img.width / img.height || 1;
+      push();
+      translate(0, 0, 2);
+      rotateZ(sin(frameCount * 0.02 + node.phase) * 0.12);
+      imageMode(CENTER);
+      tint(255, 175 * alphaScale);
+      image(img, 0, 0, s * aspect, s);
+      noTint();
+      pop();
+    }
+
+    function drawButterflyParticle(node, s) {
+      let tilt = sin(frameCount * 0.04 + node.phase) * 0.14;
+      rotateZ(tilt);
+      scale(1.15, 1, 1);
+
+      drawButterflyWing(-1, s);
+      drawButterflyWing(1, s);
+
+      fill(255, 255, 255, 45);
+      ellipse(0, 0, s * 0.16, s * 0.62);
+
+      stroke(255, 255, 255, 95);
+      strokeWeight(0.28);
+      line(0, -s * 0.12, 0.8, -s * 0.92, -s * 0.52, 0.8);
+      line(0, -s * 0.08, 0.8, -s * 0.56, s * 0.36, 0.8);
+      line(0, -s * 0.12, 0.8, s * 0.92, -s * 0.52, 0.8);
+      line(0, -s * 0.08, 0.8, s * 0.56, s * 0.36, 0.8);
+      noStroke();
+    }
+
+    function drawButterflyWing(side, s) {
+      push();
+      scale(side, 1, 1);
+
+      beginShape();
+      vertex(0, -s * 0.08, 0);
+      vertex(s * 0.28, -s * 0.5, 0);
+      vertex(s * 0.76, -s * 0.72, 0);
+      vertex(s * 1.08, -s * 0.42, 0);
+      vertex(s * 0.98, -s * 0.05, 0);
+      vertex(s * 0.58, s * 0.06, 0);
+      vertex(s * 0.18, s * 0.02, 0);
+      endShape(CLOSE);
+
+      beginShape();
+      vertex(0, s * 0.05, 0);
+      vertex(s * 0.2, s * 0.1, 0);
+      vertex(s * 0.62, s * 0.18, 0);
+      vertex(s * 0.82, s * 0.48, 0);
+      vertex(s * 0.5, s * 0.72, 0);
+      vertex(s * 0.18, s * 0.48, 0);
+      endShape(CLOSE);
+      pop();
+    }
+
+    function drawStar(x, y, innerRadius, outerRadius, points) {
+      beginShape();
+      for (let i = 0; i < starUnitPoints.length; i++) {
+        let p = starUnitPoints[i];
+        let radius = i % 2 === 0 ? outerRadius : innerRadius;
+        vertex(x + p[0] * radius, y + p[1] * radius, 0);
+      }
+      endShape(CLOSE);
+    }
+
+    function drawSoftStar(x, y, innerRadius, outerRadius) {
+      beginShape();
+      for (let i = 0; i < 10; i++) {
+        let a = -HALF_PI + i * PI / 5;
+        let radius = i % 2 === 0 ? outerRadius : innerRadius;
+        let nextA = -HALF_PI + (i + 1) * PI / 5;
+        let nextRadius = (i + 1) % 2 === 0 ? outerRadius : innerRadius;
+        let px = x + cos(a) * radius;
+        let py = y + sin(a) * radius;
+        let nx = x + cos(nextA) * nextRadius;
+        let ny = y + sin(nextA) * nextRadius;
+        let cx = x + cos(a + PI / 10) * (radius + nextRadius) * 0.5;
+        let cy = y + sin(a + PI / 10) * (radius + nextRadius) * 0.5;
+        if (i === 0) vertex(px, py, 0);
+        quadraticVertex(cx, cy, 0, nx, ny, 0);
+      }
+      endShape(CLOSE);
+    }
+
+    function pastelAccentColor(seed) {
+      let choices = [
+        color(247, 154, 186),
+        color(153, 215, 202),
+        color(152, 198, 229),
+        color(205, 174, 226),
+        color(242, 216, 126)
+      ];
+      return choices[floor(abs(sin(seed)) * choices.length) % choices.length];
+    }
+
+    function buildCoilAnchors(num) {
+      let anchors = [];
+      let extraRightStrings = 14;
+      let baseCount = num - extraRightStrings;
+      for (let i = 0; i < baseCount; i++) {
+        let t = map(i, 0, baseCount - 1, 0.9, 5.7 * PI);
+        anchors.push(coilPoint(t, coilRadiusAt(t)));
+      }
+
+      let rightSideAngles = [5.95, 6.18, 6.32, 6.52, 6.68, 12.18, 12.38, 12.56, 12.74, 12.92, 18.34, 18.56, 18.78, 19.0];
+      for (let t of rightSideAngles) {
+        anchors.push(coilPoint(t, coilRadiusAt(t)));
+      }
+      return anchors;
+    }
+
+    function coilRadiusAt(angle) {
+      return map(angle, 0.65, 6.3 * PI, 6, 104);
+    }
+
+    function coilPoint(angle, radius) {
+      let x = cos(angle) * radius;
+      let z = sin(angle) * radius * 0.52;
+      let turn = 0;
+      return {
+        x: x * cos(turn) - z * sin(turn),
+        z: x * sin(turn) + z * cos(turn)
+      };
+    }
+
+    function drawCoilFrame() {
+      push();
+      noFill();
+      stroke(188, 194, 202, 190);
+      strokeWeight(0.55);
+      beginShape();
+      for (let a = 0.65; a < 6.3 * PI; a += 0.12) {
+        let r = map(a, 0.65, 6.3 * PI, 6, 104);
+        let pt = coilPoint(a, r);
+        curveVertex(pt.x, 0, pt.z);
+      }
+      endShape();
+
+      stroke(232, 235, 238, 145);
+      strokeWeight(0.18);
+      beginShape();
+      for (let a = 0.65; a < 6.3 * PI; a += 0.12) {
+        let r = map(a, 0.65, 6.3 * PI, 6, 104);
+        let pt = coilPoint(a, r);
+        curveVertex(pt.x, -1.5, pt.z);
+      }
+      endShape();
+      pop();
+    }
+  </script>
+</body>
+</html>
