@@ -16,8 +16,14 @@
     #canvas-container { position: relative; flex: 0 0 var(--poster-width); width: var(--poster-width); height: var(--poster-height); z-index: 1; pointer-events: auto; touch-action: none; background: var(--poster-bg); box-shadow: 0 40px 90px rgba(145, 160, 180, 0.18); border-radius: 20px; overflow: hidden; border: 14px solid #ffffff; }
     #canvas-container canvas { width: 100% !important; height: 100% !important; display: block; }
     .poster-ui-layer { position: absolute; top: 0; left: 0; width: var(--poster-width); height: var(--poster-height); z-index: 2; padding: 45px; pointer-events: none; }
-    .poster-title h1 { font-size: 52px; line-height: 1.08; font-weight: 600; color: rgba(18, 24, 32, 0.92); }
-    .poster-title p { margin-top: 8px; font-size: 11px; color: #8da3b9; letter-spacing: 5px; }
+    .poster-title { text-align: center; }
+    .poster-title h1 { font-size: 50px; line-height: 1.08; font-weight: 300; color: rgba(40, 48, 58, 0.26); letter-spacing: 0.08em; }
+    .poster-title p { margin-top: -4px; font-size: 17px; color: rgba(104, 122, 140, 0.72); letter-spacing: 1px; }
+    .poster-copy { position: absolute; top: 142px; width: 112px; max-height: 405px; overflow: hidden; color: rgba(72, 88, 104, 0.48); font-family: Georgia, 'Times New Roman', serif; font-size: 8.5px; line-height: 1.52; letter-spacing: 0.01em; text-align: left; text-shadow: 0 1px 8px rgba(255, 255, 255, 0.92); }
+    .poster-copy-left { left: 30px; }
+    .poster-copy-right { right: 30px; }
+    .poster-copy .quote { color: rgba(72, 88, 104, 0.58); font-style: italic; margin-bottom: 9px; }
+    .poster-copy p + p { margin-top: 9px; }
     .poster-poem { position: absolute; left: 47px; bottom: 64px; max-width: 245px; color: rgba(72, 88, 104, 0.74); font-size: 15px; line-height: 2.05; font-weight: 300; letter-spacing: 0.04em; text-shadow: 0 1px 8px rgba(255, 255, 255, 0.88); }
     .poster-poem .poem-first { color: rgba(45, 58, 72, 0.84); font-weight: 600; }
     .control-panel { position: relative; flex: 0 0 292px; width: 292px; height: 720px; max-height: 720px; overflow-y: auto; background: var(--panel-bg); backdrop-filter: blur(20px); border-radius: 12px; z-index: 10; padding: 22px; pointer-events: auto; box-shadow: 0 18px 45px rgba(120, 136, 156, 0.18); border: 1px solid rgba(255, 255, 255, 0.76); }
@@ -38,7 +44,10 @@
       #canvas-container { flex: 0 0 100svh; width: 100vw; height: 100svh; border: 0; border-radius: 0; box-shadow: none; }
       .poster-ui-layer { left: 0; width: 100vw; height: 100svh; transform: none; padding: max(28px, env(safe-area-inset-top)) 28px 28px; }
       .poster-title h1 { font-size: clamp(42px, 13vw, 68px); line-height: 1.05; }
-      .poster-title p { font-size: 11px; letter-spacing: 4px; }
+      .poster-title p { font-size: 15px; letter-spacing: 1px; }
+      .poster-copy { top: 170px; width: 76px; max-height: 46svh; font-size: 7.4px; line-height: 1.42; color: rgba(72, 88, 104, 0.36); }
+      .poster-copy-left { left: 18px; }
+      .poster-copy-right { right: 18px; }
       .poster-poem { left: 30px; bottom: max(112px, env(safe-area-inset-bottom) + 96px); max-width: min(270px, calc(100vw - 96px)); font-size: clamp(13px, 3.7vw, 16px); line-height: 1.95; color: rgba(72, 88, 104, 0.7); }
       .panel-toggle { display: grid; place-items: center; position: fixed; right: max(16px, env(safe-area-inset-right)); bottom: max(18px, env(safe-area-inset-bottom)); width: 52px; height: 52px; border: 1px solid rgba(141, 163, 185, 0.34); border-radius: 999px; background: rgba(255, 255, 255, 0.86); color: #53677a; z-index: 30; box-shadow: 0 14px 36px rgba(100, 116, 138, 0.22); backdrop-filter: blur(18px); font-size: 18px; }
       .music-toggle { display: grid; place-items: center; position: fixed; right: max(16px, env(safe-area-inset-right)); bottom: calc(max(18px, env(safe-area-inset-bottom)) + 64px); width: 52px; height: 52px; border: 1px solid rgba(141, 163, 185, 0.34); border-radius: 999px; background: rgba(255, 255, 255, 0.86); color: #53677a; z-index: 30; box-shadow: 0 14px 36px rgba(100, 116, 138, 0.2); backdrop-filter: blur(18px); font-size: 18px; }
@@ -62,6 +71,16 @@
       <div class="poster-title">
         <h1>收集春天</h1>
         <p>COLLECT SPRING</p>
+      </div>
+      <div class="poster-copy poster-copy-left">
+        <p class="quote">Nature is the wealth most sublime, meaningful and spiritual to embrace; when lakes, flowers and clouds are left to commune, the heart learns to be light.</p>
+        <p>I wander'd lonely as a cloud<br>That floats on high o'er vales and hills,<br>When all at once I saw a crowd,<br>A host of golden daffodils,<br>Beside the lake, beneath the trees<br>Fluttering and dancing in the breeze.</p>
+        <p>Continuous as the stars that shine<br>And twinkle on the milky way,<br>They stretch'd in never-ending line<br>Along the margin of a bay.</p>
+      </div>
+      <div class="poster-copy poster-copy-right">
+        <p class="quote">Spring is never loud; it arrives by small signs, by wind, by color, by petals and quiet motion gathered into one remembered day.</p>
+        <p>Ten thousand saw I at a glance<br>Tossing their heads in sprightly dance.<br>The waves beside them danced; but they<br>Out-did the sparkling waves in glee.</p>
+        <p>A poet could not but be gay,<br>In such a jocund company:<br>I gazed, and gazed, but little thought<br>What wealth the show to me had brought.</p>
       </div>
       <div class="poster-poem">
         <div class="poem-first">信念是一只鸟。</div>
