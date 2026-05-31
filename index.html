@@ -24,8 +24,6 @@
     .poster-copy-right { right: 30px; }
     .poster-copy .quote { color: rgba(72, 88, 104, 0.58); font-style: italic; margin-bottom: 9px; }
     .poster-copy p + p { margin-top: 9px; }
-    .poster-poem { position: absolute; left: 47px; bottom: 64px; max-width: 245px; color: rgba(72, 88, 104, 0.74); font-size: 15px; line-height: 2.05; font-weight: 300; letter-spacing: 0.04em; text-shadow: 0 1px 8px rgba(255, 255, 255, 0.88); }
-    .poster-poem .poem-first { color: rgba(45, 58, 72, 0.84); font-weight: 600; }
     .control-panel { position: relative; flex: 0 0 292px; width: 292px; height: 720px; max-height: 720px; overflow-y: auto; background: var(--panel-bg); backdrop-filter: blur(20px); border-radius: 12px; z-index: 10; padding: 22px; pointer-events: auto; box-shadow: 0 18px 45px rgba(120, 136, 156, 0.18); border: 1px solid rgba(255, 255, 255, 0.76); }
     .control-group { margin-bottom: 15px; }
     .control-group label { display: block; font-size: 11px; color: #4b5a6a; margin-bottom: 5px; font-weight: 600; }
@@ -48,7 +46,6 @@
       .poster-copy { top: 170px; width: 76px; max-height: 46svh; font-size: 7.4px; line-height: 1.42; color: rgba(72, 88, 104, 0.36); }
       .poster-copy-left { left: 18px; }
       .poster-copy-right { right: 18px; }
-      .poster-poem { left: 30px; bottom: max(112px, env(safe-area-inset-bottom) + 96px); max-width: min(270px, calc(100vw - 96px)); font-size: clamp(13px, 3.7vw, 16px); line-height: 1.95; color: rgba(72, 88, 104, 0.7); }
       .panel-toggle { display: grid; place-items: center; position: fixed; right: max(16px, env(safe-area-inset-right)); bottom: max(18px, env(safe-area-inset-bottom)); width: 52px; height: 52px; border: 1px solid rgba(141, 163, 185, 0.34); border-radius: 999px; background: rgba(255, 255, 255, 0.86); color: #53677a; z-index: 30; box-shadow: 0 14px 36px rgba(100, 116, 138, 0.22); backdrop-filter: blur(18px); font-size: 18px; }
       .music-toggle { display: grid; place-items: center; position: fixed; right: max(16px, env(safe-area-inset-right)); bottom: calc(max(18px, env(safe-area-inset-bottom)) + 64px); width: 52px; height: 52px; border: 1px solid rgba(141, 163, 185, 0.34); border-radius: 999px; background: rgba(255, 255, 255, 0.86); color: #53677a; z-index: 30; box-shadow: 0 14px 36px rgba(100, 116, 138, 0.2); backdrop-filter: blur(18px); font-size: 18px; }
       .panel-grip { display: block; width: 42px; height: 4px; border-radius: 999px; background: rgba(83, 103, 122, 0.26); margin: 0 auto 16px; }
@@ -81,12 +78,6 @@
         <p class="quote">Spring is never loud; it arrives by small signs, by wind, by color, by petals and quiet motion gathered into one remembered day.</p>
         <p>Ten thousand saw I at a glance<br>Tossing their heads in sprightly dance.<br>The waves beside them danced; but they<br>Out-did the sparkling waves in glee.</p>
         <p>A poet could not but be gay,<br>In such a jocund company:<br>I gazed, and gazed, but little thought<br>What wealth the show to me had brought.</p>
-      </div>
-      <div class="poster-poem">
-        <div class="poem-first">信念是一只鸟。</div>
-        <div>当黎明尚未到来时，</div>
-        <div>它已经感知到光，</div>
-        <div>并开始歌唱。</div>
       </div>
     </div>
 
@@ -182,6 +173,7 @@
     function windowResized() {
       let size = posterCanvasSize();
       resizeCanvas(size.w, size.h);
+      rebuildChimes(numStrings);
     }
 
     function setParticleShape(shape) {
@@ -894,7 +886,17 @@
         lavender: [[170, 225], [145, 210], [225, 255]]
       };
       let p = palettes[params.colorTheme] || palettes.spring;
-      return color(random(p[0][0], p[0][1]), random(p[1][0], p[1][1]), random(p[2][0], p[2][1]), 150);
+      let boost = isMobilePoster() ? 1.14 : 1;
+      return color(
+        min(255, random(p[0][0], p[0][1]) * boost),
+        min(255, random(p[1][0], p[1][1]) * boost),
+        min(255, random(p[2][0], p[2][1]) * boost),
+        isMobilePoster() ? 188 : 150
+      );
+    }
+
+    function isMobilePoster() {
+      return window.matchMedia && window.matchMedia('(max-width: 920px)').matches;
     }
 
     function smoothstep(t) {
