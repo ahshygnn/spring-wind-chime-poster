@@ -24,6 +24,7 @@
     .control-group select { width: 100%; border: 1px solid rgba(141, 163, 185, 0.35); border-radius: 6px; padding: 7px 8px; background: rgba(255, 255, 255, 0.86); color: #4b5a6a; font-family: inherit; font-size: 12px; outline: none; }
     .control-group button { width: 100%; border: 1px solid rgba(141, 163, 185, 0.32); border-radius: 6px; padding: 7px 8px; background: rgba(255, 255, 255, 0.9); color: #4b5a6a; font-family: inherit; font-size: 12px; cursor: pointer; }
     .panel-toggle { display: none; }
+    .music-toggle { display: none; }
     .panel-grip { display: none; }
     @media (max-width: 920px) {
       :root { --poster-width: 100vw; --poster-height: 100svh; }
@@ -35,10 +36,12 @@
       .poster-ui-layer h1 { font-size: clamp(42px, 13vw, 68px); line-height: 1.05; }
       .poster-ui-layer p { font-size: 11px !important; letter-spacing: 4px !important; }
       .panel-toggle { display: grid; place-items: center; position: fixed; right: max(16px, env(safe-area-inset-right)); bottom: max(18px, env(safe-area-inset-bottom)); width: 52px; height: 52px; border: 1px solid rgba(141, 163, 185, 0.34); border-radius: 999px; background: rgba(255, 255, 255, 0.86); color: #53677a; z-index: 30; box-shadow: 0 14px 36px rgba(100, 116, 138, 0.22); backdrop-filter: blur(18px); font-size: 18px; }
+      .music-toggle { display: grid; place-items: center; position: fixed; right: max(16px, env(safe-area-inset-right)); bottom: calc(max(18px, env(safe-area-inset-bottom)) + 64px); width: 52px; height: 52px; border: 1px solid rgba(141, 163, 185, 0.34); border-radius: 999px; background: rgba(255, 255, 255, 0.86); color: #53677a; z-index: 30; box-shadow: 0 14px 36px rgba(100, 116, 138, 0.2); backdrop-filter: blur(18px); font-size: 18px; }
       .panel-grip { display: block; width: 42px; height: 4px; border-radius: 999px; background: rgba(83, 103, 122, 0.26); margin: 0 auto 16px; }
       .control-panel { position: fixed; left: 0; right: 0; bottom: 0; width: 100vw; height: min(72svh, 620px); max-height: min(72svh, 620px); flex-basis: auto; border-radius: 22px 22px 0 0; padding: 12px 22px max(26px, env(safe-area-inset-bottom)); transform: translateY(calc(100% - 18px)); transition: transform 260ms ease; z-index: 25; overflow-y: auto; -webkit-overflow-scrolling: touch; box-shadow: 0 -18px 52px rgba(100, 116, 138, 0.2); }
       body.panel-open .control-panel { transform: translateY(0); }
       body.panel-open .panel-toggle { bottom: calc(min(72svh, 620px) + max(12px, env(safe-area-inset-bottom))); }
+      body.panel-open .music-toggle { bottom: calc(min(72svh, 620px) + max(76px, env(safe-area-inset-bottom) + 64px)); }
       .control-group { margin-bottom: 18px; }
       .control-group label { font-size: 14px; }
       .control-group select, .control-group button { min-height: 44px; font-size: 15px; }
@@ -57,6 +60,9 @@
 
     <button class="panel-toggle" type="button" aria-label="打开调节面板" onclick="toggleControlPanel(event)">
       <i class="fa-solid fa-sliders"></i>
+    </button>
+    <button class="music-toggle" type="button" aria-label="播放背景音乐" onclick="startAudio(event)">
+      <i class="fa-solid fa-volume-high"></i>
     </button>
     <div class="control-panel" id="controlPanel">
       <div class="panel-grip"></div>
@@ -111,7 +117,7 @@
     let chimes = [], stringLengths = [], numStrings = 36, globalRotation = 0, spiralPoints = [];
     let posterBackground = null, elementLayerImages = [];
     let releasedParticles = [], gestureWind = { x: 0, z: 0, force: 0, px: 256, py: 346 };
-    let lastPointer = null, audioCtx = null, lastChimeFrame = 0, bgMusicTimer = null, bgMusicStarted = false;
+    let lastPointer = null, audioCtx = null, lastChimeFrame = 0, bgMusicTimer = null, bgMusicStarted = false, audioUnlocking = false;
     const stringLength = 520;
     const starUnitPoints = [
       [0, -1], [0.26, -0.36], [0.95, -0.31], [0.42, 0.12], [0.59, 0.81],
@@ -119,7 +125,9 @@
     ];
 
     buildControlPanel();
-    document.addEventListener('pointerdown', () => startAudio(), { once: true, passive: true });
+    ['pointerdown', 'touchend', 'click'].forEach(type => {
+      document.addEventListener(type, () => startAudio(), { capture: true, passive: true });
+    });
 
     function setup() {
       let size = posterCanvasSize();
@@ -217,12 +225,42 @@
       lastPointer = p;
     }
 
-    function startAudio() {
+    function startAudio(event) {
+      if (event) event.stopPropagation();
       if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       }
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-      startBackgroundMusic();
+      if (bgMusicStarted || audioUnlocking) return;
+      audioUnlocking = true;
+      let ready = audioCtx.state === 'suspended' ? audioCtx.resume() : Promise.resolve();
+      ready.then(() => {
+        unlockAudioOutput();
+        audioUnlocking = false;
+        startBackgroundMusic();
+        updateMusicButton();
+      }).catch(() => {
+        audioUnlocking = false;
+      });
+    }
+
+    function unlockAudioOutput() {
+      let osc = audioCtx.createOscillator();
+      let gain = audioCtx.createGain();
+      let t = audioCtx.currentTime;
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, t);
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.006, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(t);
+      osc.stop(t + 0.18);
+    }
+
+    function updateMusicButton() {
+      let btn = document.querySelector('.music-toggle i');
+      if (btn) btn.className = bgMusicStarted ? 'fa-solid fa-volume-high' : 'fa-solid fa-volume-xmark';
     }
 
     function startBackgroundMusic() {
@@ -245,7 +283,7 @@
         [196.00, 9.60, 1.8, 0.005], [493.88, 9.60, 1.0, 0.010], [587.33, 9.92, 0.95, 0.009], [783.99, 10.24, 1.05, 0.010], [987.77, 10.58, 1.12, 0.007],
         [220.00, 11.20, 1.8, 0.005], [554.37, 11.20, 1.0, 0.010], [659.25, 11.52, 0.95, 0.009], [880.00, 11.84, 1.05, 0.010], [1108.73, 12.18, 1.12, 0.007]
       ];
-      notes.forEach(n => playPianoNote(n[0], base + n[1], n[2], n[3]));
+      notes.forEach(n => playPianoNote(n[0], base + n[1], n[2], n[3] * 2.15));
     }
 
     function playPianoNote(freq, startTime, duration, level) {
